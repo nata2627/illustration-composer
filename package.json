@@ -9,7 +9,8 @@
     "build:lib": "node scripts/build-library.mjs",
     "test": "vitest run",
     "check": "tsc --noEmit && vitest run && vite build",
-    "examples": "vite-node scripts/make-examples.ts"
+    "examples": "vite-node scripts/make-examples.ts",
+    "eval": "vite-node scripts/eval-dictionary.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

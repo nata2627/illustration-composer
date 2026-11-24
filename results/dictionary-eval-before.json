@@ -1,0 +1,16 @@
+{
+  "dev": {
+    "headlines": 60,
+    "found": 50,
+    "hit": 45,
+    "mainOk": 53,
+    "mainTotal": 60
+  },
+  "test": {
+    "headlines": 30,
+    "found": 25,
+    "hit": 24,
+    "mainOk": 37,
+    "mainTotal": 38
+  }
+}
