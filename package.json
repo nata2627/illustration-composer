@@ -16,5 +16,9 @@
     "typescript": "^7.0.2",
     "vite": "^7.3.8",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0",
+    "zod": "^4.6.7"
   }
 }

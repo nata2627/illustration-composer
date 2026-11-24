@@ -21,7 +21,13 @@
           <form id="metaphor-form" class="tab-body" data-tab="metaphor">
             <label for="metaphor">Метафора или заголовок</label>
             <textarea id="metaphor" rows="2">Идеи для подкаста о личных финансах</textarea>
-            <button type="submit" class="primary">Собрать</button>
+            <details class="llm">
+              <summary>Подбор нейросетью</summary>
+              <p class="hint">С ключом Anthropic API заголовок разбирает модель Claude. Она выбирает объекты только из библиотеки и объясняет выбор. Ключ хранится в этой вкладке и уходит только в API. Без ключа работает словарь смыслов.</p>
+              <label for="llm-key">Ключ API</label>
+              <input id="llm-key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-..." />
+            </details>
+            <button type="submit" class="primary" id="metaphor-submit">Собрать</button>
           </form>
           <form id="names-form" class="tab-body" data-tab="names" hidden>
             <label for="names">Названия объектов</label>

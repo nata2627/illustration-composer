@@ -4,7 +4,7 @@ import { builtinPalette, colorMap, parsePaletteFile, PALETTES, recolor, type Pal
 import { layerTransform, sceneToSvg } from "./render";
 import { addLayer, CANVAS, duplicateLayer, findIndex, layerName, moveLayer, removeLayer, type Scene } from "./scene";
 import { compose, hashString, TEMPLATES, type Pick, type TemplateId } from "./layout";
-import { parseNames, pickForMetaphor } from "./match";
+import { parseNames, pickForMetaphor, type MetaphorResult } from "./match";
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -16,6 +16,10 @@ let template: TemplateId = "headline";
 let lastPicks: Pick[] = [];
 let lastInput = "";
 let variantSeed = 0;
+let metaphorRequest = 0; // the latest headline request wins, older answers are dropped
+
+const KEY_STORAGE = "llm-key";
+const DICTIONARY = "Подбор по словарю смыслов";
 
 const source = () => builtinPalette(lib.sourcePalette);
 const target = () => palettes.find((p) => p.id === scene.paletteId)!;
@@ -102,8 +106,10 @@ function autoCompose(picks: Pick[], input: string) {
   render();
 }
 
-function explainMetaphor(text: string) {
-  const r = pickForMetaphor(text);
+const escapeHtml = (text: string) =>
+  text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+function showMetaphor(r: MetaphorResult, text: string, source: string) {
   const box = $("explain");
   if (r.fallback) {
     box.innerHTML = "<p>Совпадений со смыслами объектов нет, показан набор по умолчанию.</p>";
@@ -111,7 +117,8 @@ function explainMetaphor(text: string) {
     const byObject = new Map<string, string[]>();
     for (const reason of r.reasons) {
       const list = byObject.get(reason.objectId) ?? [];
-      list.push(`${reason.meaning} («${reason.word}»)`);
+      // model reasons are free text, so everything is escaped before it goes into the page
+      list.push(escapeHtml(reason.word ? `${reason.meaning} («${reason.word}»)` : reason.meaning));
       byObject.set(reason.objectId, list);
     }
     box.innerHTML = r.picks
@@ -119,9 +126,45 @@ function explainMetaphor(text: string) {
         const why = byObject.get(p.objectId)?.join(", ") ?? "для баланса композиции";
         return `<p><b>${META[p.objectId].name}</b>${p.variant === "bg" ? " (фоновый)" : ""}: ${why}</p>`;
       })
-      .join("");
+      .join("") + `<p class="source">${escapeHtml(source)}</p>`;
   }
   autoCompose(r.picks, text);
+}
+
+const llmKey = () => $<HTMLInputElement>("llm-key").value.trim();
+
+// Without a key the dictionary answers at once. With a key the model module is loaded on
+// demand; any failure (network, key, refusal, bad answer) falls back to the dictionary.
+async function submitMetaphor(text: string) {
+  const req = ++metaphorRequest;
+  const key = llmKey();
+  if (!key) {
+    status("");
+    return showMetaphor(pickForMetaphor(text), text, DICTIONARY);
+  }
+  const button = $<HTMLButtonElement>("metaphor-submit");
+  button.disabled = true;
+  status("Модель подбирает объекты…");
+  let result: MetaphorResult;
+  let source = DICTIONARY;
+  let problem = "";
+  try {
+    const llm = await import("./llm");
+    try {
+      result = await llm.pickWithLLM(text, llm.createClient(key));
+      source = `Подбор моделью ${llm.LLM_MODEL}`;
+    } catch (err) {
+      result = pickForMetaphor(text);
+      problem = `Модель не ответила: ${llm.describeError(err)}. Показан подбор по словарю.`;
+    }
+  } catch {
+    result = pickForMetaphor(text);
+    problem = "Модуль нейросети не загрузился. Показан подбор по словарю.";
+  }
+  if (req !== metaphorRequest) return;
+  button.disabled = false;
+  status(problem, Boolean(problem));
+  showMetaphor(result, text, source);
 }
 
 function composeNames(text: string) {
@@ -147,11 +190,15 @@ function setupControls() {
   $("metaphor-form").onsubmit = (e) => {
     e.preventDefault();
     variantSeed = 0;
-    explainMetaphor($<HTMLTextAreaElement>("metaphor").value);
+    void submitMetaphor($<HTMLTextAreaElement>("metaphor").value);
   };
   $("names-form").onsubmit = (e) => {
     e.preventDefault();
     variantSeed = 0;
+    // a pending headline request must not overwrite this composition
+    metaphorRequest++;
+    $<HTMLButtonElement>("metaphor-submit").disabled = false;
+    status("");
     composeNames($<HTMLInputElement>("names").value);
   };
   const chips = $("name-chips");
@@ -173,6 +220,8 @@ function setupControls() {
     template = tpl.value as TemplateId;
     if (lastPicks.length) autoCompose(lastPicks, lastInput);
   };
+
+  setupKey();
 
   fillPalettes();
   $<HTMLSelectElement>("palette").onchange = (e) => {
@@ -261,6 +310,26 @@ function setupControls() {
   });
 }
 
+// The key lives in sessionStorage: it survives a reload but not closing the tab.
+// Storage may be unavailable (private mode), then the key just stays in the field.
+function setupKey() {
+  const input = $<HTMLInputElement>("llm-key");
+  try {
+    input.value = sessionStorage.getItem(KEY_STORAGE) ?? "";
+  } catch {
+    input.value = "";
+  }
+  if (input.value) input.closest("details")!.open = true;
+  input.oninput = () => {
+    try {
+      if (input.value.trim()) sessionStorage.setItem(KEY_STORAGE, input.value.trim());
+      else sessionStorage.removeItem(KEY_STORAGE);
+    } catch {
+      // nothing to do: the field still holds the key for this page
+    }
+  };
+}
+
 function fillPalettes() {
   const sel = $<HTMLSelectElement>("palette");
   sel.innerHTML = "";
@@ -325,7 +394,7 @@ async function start() {
   }
   renderLibrary();
   if (namesMode) composeNames($<HTMLInputElement>("names").value);
-  else explainMetaphor($<HTMLTextAreaElement>("metaphor").value);
+  else showMetaphor(pickForMetaphor($<HTMLTextAreaElement>("metaphor").value), $<HTMLTextAreaElement>("metaphor").value, DICTIONARY);
 }
 
 // Link parameters reproduce a composition: ?mode=names&q=лампа,книга&tpl=assembled&palette=teal&size=S

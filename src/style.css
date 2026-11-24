@@ -50,7 +50,13 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chips button { font-size: 12px; padding: 2px 8px; border-radius: 12px; }
 
+.llm { font-size: 13px; }
+.llm summary { cursor: pointer; color: var(--accent); }
+.llm[open] { display: flex; flex-direction: column; gap: 4px; }
+.llm .hint { margin: 4px 0; }
+
 .explain { font-size: 13px; margin-top: 8px; }
+.explain .source { color: var(--muted); }
 .explain p { margin: 4px 0; }
 .status { font-size: 13px; color: var(--muted); min-height: 1em; margin: 0; }
 .status.error { color: #c0392b; }
