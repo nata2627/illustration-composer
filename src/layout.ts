@@ -47,7 +47,8 @@ const RISE = 0.28; // each next object stands further back: its base is higher, 
 const GAP = 12;
 
 // Places objects in one or two rows along an isometric diagonal, then fits the
-// whole group into the template area. Bounding boxes never overlap.
+// whole group into the template area. Objects in a row never overlap; with more
+// than four objects the back row is partly hidden behind the front one.
 export function compose(picks: Pick[], template: TemplateId, scene: Scene, lib: Library, seed = 0): Layer[] {
   if (picks.length === 0) return [];
   const rand = rng(seed);

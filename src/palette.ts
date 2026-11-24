@@ -14,6 +14,14 @@ export interface Palette {
 
 export const PALETTES: Palette[] = builtin.palettes as Palette[];
 
+// The library is drawn in one of the built-in schemes, so recoloring always starts from
+// that scheme as shipped. A user palette with the same id changes only the target colors.
+export function builtinPalette(id: string): Palette {
+  const p = PALETTES.find((q) => q.id === id);
+  if (!p) throw new Error(`no built-in palette ${id}`);
+  return p;
+}
+
 export function normalizeColor(value: string): string | null {
   const v = value.trim().toLowerCase();
   if (v === "white") return "#ffffff";
@@ -31,7 +39,7 @@ function roleColors(p: Palette): Record<string, string> {
   return { ...p.background, ...p.objects };
 }
 
-// Map every colour of the source palette to the colour of the same role in the target palette.
+// Map every color of the source palette to the color of the same role in the target palette.
 export function colorMap(source: Palette, target: Palette): Map<string, string> {
   const src = roleColors(source);
   const dst = roleColors(target);

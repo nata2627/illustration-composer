@@ -25,7 +25,9 @@ function stem(word: string): string {
   return word.length > 4 ? word.replace(/(ами|ями|ов|ев|ей|ой|ом|ем|ам|ям|ах|ях|ою|ию|ия|ье|а|я|у|ю|ы|и|о|е|ь|й)$/, "") : word;
 }
 
-export function matchObjectWord(token: string): string | null {
+// allowTypo is for scenario 2, where the user types object names on purpose. In a headline
+// a one-letter distance hits ordinary words ("ваша" -> "ваза", "папа" -> "папка").
+export function matchObjectWord(token: string, allowTypo = true): string | null {
   const t = stem(normalize(token));
   if (t.length < 3) return null;
   for (const id of OBJECT_IDS) {
@@ -34,6 +36,7 @@ export function matchObjectWord(token: string): string | null {
       if (t === s) return id;
     }
   }
+  if (!allowTypo) return null;
   // one typo is allowed only for words long enough not to collide
   for (const id of OBJECT_IDS) {
     for (const w of META[id].words) {
@@ -101,7 +104,7 @@ export function pickForMetaphor(text: string, maxMain = 3, maxBg = 2): MetaphorR
   const score = new Map<string, number>();
   const reasons: Reason[] = [];
   for (const tok of tokens(text)) {
-    const direct = matchObjectWord(tok);
+    const direct = matchObjectWord(tok, false);
     if (direct) {
       score.set(direct, (score.get(direct) ?? 0) + 3);
       reasons.push({ objectId: direct, meaning: "названо прямо", word: tok });

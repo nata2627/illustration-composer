@@ -1,6 +1,6 @@
 import "./style.css";
 import { loadLibrary, META, OBJECT_IDS, type Library, type Size, type Variant } from "./library";
-import { colorMap, parsePaletteFile, PALETTES, recolor, type Palette } from "./palette";
+import { builtinPalette, colorMap, parsePaletteFile, PALETTES, recolor, type Palette } from "./palette";
 import { layerTransform, sceneToSvg } from "./render";
 import { addLayer, CANVAS, duplicateLayer, findIndex, layerName, moveLayer, removeLayer, type Scene } from "./scene";
 import { compose, hashString, TEMPLATES, type Pick, type TemplateId } from "./layout";
@@ -17,7 +17,7 @@ let lastPicks: Pick[] = [];
 let lastInput = "";
 let variantSeed = 0;
 
-const source = () => palettes.find((p) => p.id === lib.sourcePalette)!;
+const source = () => builtinPalette(lib.sourcePalette);
 const target = () => palettes.find((p) => p.id === scene.paletteId)!;
 
 function status(text: string, isError = false) {
@@ -128,7 +128,7 @@ function composeNames(text: string) {
   const r = parseNames(text);
   const box = $("explain");
   if (r.picks.length === 0) {
-    box.innerHTML = "<p>Не нашла ни одного объекта. Доступны: " + OBJECT_IDS.map((id) => META[id].name.toLowerCase()).join(", ") + ".</p>";
+    box.innerHTML = "<p>Ни одного объекта не найдено. Доступны: " + OBJECT_IDS.map((id) => META[id].name.toLowerCase()).join(", ") + ".</p>";
     return;
   }
   box.innerHTML =

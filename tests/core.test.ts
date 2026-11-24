@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Library, Size } from "../src/library";
 import { META, OBJECT_IDS } from "../src/library";
-import { colorMap, colorsIn, normalizeColor, parsePaletteFile, PALETTES, recolor } from "../src/palette";
+import { builtinPalette, colorMap, colorsIn, normalizeColor, parsePaletteFile, PALETTES, recolor } from "../src/palette";
 import { sceneToSvg } from "../src/render";
 import { addLayer, duplicateLayer, moveLayer, removeLayer, type Scene } from "../src/scene";
 import { canvasBox, compose, insideCanvas, TEMPLATES, type TemplateId } from "../src/layout";
@@ -18,7 +18,7 @@ describe("library", () => {
     expect(Object.keys(libs[size].objects).sort()).toEqual([...OBJECT_IDS].sort());
   });
 
-  it.each(["L", "S"] as const)("every colour of size %s has a role in the source palette", (size) => {
+  it.each(["L", "S"] as const)("every color of size %s has a role in the source palette", (size) => {
     const known = new Set(colorMap(lilac, lilac).keys());
     for (const id of OBJECT_IDS) {
       for (const v of ["main", "bg"] as const) {
@@ -27,7 +27,7 @@ describe("library", () => {
     }
   });
 
-  it("background objects use only background colours", () => {
+  it("background objects use only background colors", () => {
     const bgColors = new Set(Object.values(lilac.background).map((c) => normalizeColor(c)));
     for (const size of ["L", "S"] as const) {
       for (const id of OBJECT_IDS) {
@@ -38,7 +38,7 @@ describe("library", () => {
 });
 
 describe("recolor", () => {
-  it.each(PALETTES.map((p) => [p.id, p] as const))("to %s keeps paths and leaves no foreign colours", (_id, target) => {
+  it.each(PALETTES.map((p) => [p.id, p] as const))("to %s keeps paths and leaves no foreign colors", (_id, target) => {
     const own = new Set([...Object.values(target.background), ...Object.values(target.objects)].map((c) => normalizeColor(c)));
     for (const id of OBJECT_IDS) {
       const src = libs.L.objects[id].main.body;
@@ -48,7 +48,7 @@ describe("recolor", () => {
     }
   });
 
-  it("background variant in any scheme takes only that scheme's background colours", () => {
+  it("background variant in any scheme takes only that scheme's background colors", () => {
     for (const target of PALETTES) {
       const bg = new Set(Object.values(target.background).map((c) => normalizeColor(c)));
       for (const size of ["L", "S"] as const) {
@@ -59,11 +59,19 @@ describe("recolor", () => {
     }
   });
 
-  it("normalizes colour notations", () => {
+  it("normalizes color notations", () => {
     expect(normalizeColor("#FDD7B9")).toBe("#fdd7b9");
     expect(normalizeColor("rgb(253, 215, 185)")).toBe("#fdd7b9");
     expect(normalizeColor("white")).toBe("#ffffff");
     expect(normalizeColor("#fff")).toBe("#ffffff");
+  });
+
+  it("recolors from the shipped source scheme even after a user palette reuses its id", () => {
+    const edited = parsePaletteFile(JSON.stringify({ ...lilac, background: { ...lilac.background, bg1: "#E0D8FA" } }))[0];
+    expect(builtinPalette("lilac").background.bg1).toBe(lilac.background.bg1);
+    const out = colorsIn(recolor(libs.L.objects.lamp.main.body, colorMap(builtinPalette("lilac"), edited)));
+    expect(out).toContain("#e0d8fa");
+    expect(out).not.toContain(normalizeColor(lilac.background.bg1));
   });
 
   it("validates a palette file", () => {
@@ -168,6 +176,15 @@ describe("scenario 1: metaphor", () => {
     const main = r.picks.filter((p) => p.variant === "main").map((p) => p.objectId);
     for (const id of expected) expect(main).toContain(id);
     expect(r.reasons.length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ["Ваша зарплата выросла", "vase"],
+    ["Папа и дочь читают вместе", "folder"],
+  ])("does not take an ordinary word for an object name: %s", (text, wrong) => {
+    const r = pickForMetaphor(text);
+    expect(r.picks.map((p) => p.objectId)).not.toContain(wrong);
+    expect(r.reasons.filter((x) => x.meaning === "названо прямо")).toEqual([]);
   });
 
   it("falls back to a default set without matches", () => {
