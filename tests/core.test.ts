@@ -263,9 +263,43 @@ describe("scenario 1: metaphor", () => {
     expect(r.reasons.filter((x) => x.meaning === "названо прямо")).toEqual([]);
   });
 
+  it.each([
+    ["Командировка без стресса", "puzzle"],
+    ["Карьерный рост без смены компании", "vase"],
+  ])("does not misread a word: %s", (text, wrong) => {
+    expect(pickForMetaphor(text).picks.map((p) => p.objectId)).not.toContain(wrong);
+  });
+
   it("falls back to a default set without matches", () => {
     const r = pickForMetaphor("Квантовая хромодинамика");
     expect(r.fallback).toBe(true);
     expect(r.picks.length).toBeGreaterThan(0);
   });
 });
+
+describe("numbers in README", () => {
+  // the dictionary table in README must match the files written by `npm run eval`
+  it("match results/", () => {
+    const readme = readFileSync("README.md", "utf8");
+    const before = JSON.parse(readFileSync("results/dictionary-eval-before.json", "utf8"));
+    const after = JSON.parse(readFileSync("results/dictionary-eval.json", "utf8"));
+    const row = (name: string, key: "found" | "hit", total: "headlines") =>
+      `| ${name} | ${[before.dev, after.dev, before.test, after.test].map((m) => `${m[key]} из ${m[total]}`).join(" | ")} |`;
+    expect(readme).toContain(row("Совпадение нашлось", "found", "headlines"));
+    expect(readme).toContain(row("Попадание", "hit", "headlines"));
+    const precision = `| Точность главных | ${[before.dev, after.dev, before.test, after.test].map((m) => `${m.mainOk} из ${m.mainTotal}`).join(" | ")} |`;
+    expect(readme).toContain(precision);
+    // and the current dictionary still gives the saved numbers
+    const { headlines } = JSON.parse(readFileSync("tests/fixtures/headlines-eval.json", "utf8"));
+    for (const split of ["dev", "test"] as const) {
+      const hits = headlines
+        .filter((h: { split: string }) => h.split === split)
+        .filter((h: { text: string; ok: string[] }) => {
+          const r = pickForMetaphor(h.text);
+          return !r.fallback && r.picks.some((p) => p.variant === "main" && h.ok.includes(p.objectId));
+        }).length;
+      expect(hits).toBe(after[split].hit);
+    }
+  });
+});
+

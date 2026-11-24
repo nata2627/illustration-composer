@@ -110,14 +110,21 @@ export function pickForMetaphor(text: string, maxMain = 3, maxBg = 2): MetaphorR
       reasons.push({ objectId: direct, meaning: "названо прямо", word: tok });
       continue;
     }
+    // every object offers its longest stem that fits the word
+    const matches: { id: string; key: string; meaning: string }[] = [];
     for (const id of OBJECT_IDS) {
-      for (const [stemKey, meaning] of Object.entries(META[id].meanings)) {
-        if (tok.startsWith(stemKey) && (stemKey.length >= 4 || tok.length <= stemKey.length + 3)) {
-          score.set(id, (score.get(id) ?? 0) + 1);
-          reasons.push({ objectId: id, meaning, word: tok });
-          break;
-        }
+      let best: { key: string; meaning: string } | null = null;
+      for (const [key, meaning] of Object.entries(META[id].meanings)) {
+        const fits = tok.startsWith(key) && (key.length >= 4 || tok.length <= key.length + 3);
+        if (fits && (!best || key.length > best.key.length)) best = { key, meaning };
       }
+      if (best) matches.push({ id, ...best });
+    }
+    // across objects the longest stem names the word: "командировка" is a trip, not a "команда"
+    const longest = Math.max(0, ...matches.map((m) => m.key.length));
+    for (const m of matches.filter((x) => x.key.length === longest)) {
+      score.set(m.id, (score.get(m.id) ?? 0) + 1);
+      reasons.push({ objectId: m.id, meaning: m.meaning, word: tok });
     }
   }
   const ranked = [...score.entries()].sort((a, b) => b[1] - a[1] || OBJECT_IDS.indexOf(a[0]) - OBJECT_IDS.indexOf(b[0]));
