@@ -88,8 +88,6 @@ npm run examples     # пересобрать examples/
 
 Стенд собирается GitHub Actions (`.github/workflows/pages.yml`) при push в `main`.
 
-## Инструменты
+## Стек
 
-Все решения принимала я, процесс контролировала я, за результат отвечаю я. Claude Code использовался как инструмент для кода.
-
-Инструменты: Claude Code, Vite, TypeScript, Vitest, Figma REST API, GitHub Actions, GitHub Pages.
+Vite, TypeScript, Vitest, Figma REST API, GitHub Actions, GitHub Pages.
