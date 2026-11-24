@@ -51,8 +51,10 @@ describe("recolor", () => {
   it("background variant in any scheme takes only that scheme's background colours", () => {
     for (const target of PALETTES) {
       const bg = new Set(Object.values(target.background).map((c) => normalizeColor(c)));
-      for (const id of OBJECT_IDS) {
-        for (const c of colorsIn(recolor(libs.S.objects[id].bg.body, colorMap(lilac, target)))) expect(bg).toContain(c);
+      for (const size of ["L", "S"] as const) {
+        for (const id of OBJECT_IDS) {
+          for (const c of colorsIn(recolor(libs[size].objects[id].bg.body, colorMap(lilac, target)))) expect(bg).toContain(c);
+        }
       }
     }
   });

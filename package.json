@@ -8,11 +8,11 @@
     "build": "vite build",
     "build:lib": "node scripts/build-library.mjs",
     "test": "vitest run",
-    "check": "tsc --noEmit && vitest run && vite build"
+    "check": "tsc --noEmit && vitest run && vite build",
+    "examples": "vite-node scripts/make-examples.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "jsdom": "^27.0.1",
     "typescript": "^7.0.2",
     "vite": "^7.3.8",
     "vitest": "^3.2.7"
