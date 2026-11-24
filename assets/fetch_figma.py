@@ -20,8 +20,29 @@ def get(url):
         return r.read()
 
 
+def export(nodes, formats=("svg", "png")):
+    ids = list(nodes)
+    for fmt in formats:
+        for i in range(0, len(ids), 50):
+            chunk = ids[i:i + 50]
+            q = urllib.parse.urlencode({"ids": ",".join(chunk), "format": fmt,
+                                        "svg_include_id": "true", "scale": 1})
+            urls = json.loads(get(f"https://api.figma.com/v1/images/{FILE_KEY}?{q}"))["images"]
+            for nid, url in urls.items():
+                if not url:
+                    continue
+                name = nodes[nid].replace("/", "__").replace(" ", "_")[:150]
+                (OUT / fmt).mkdir(exist_ok=True)
+                (OUT / fmt / f"{name}__{nid.replace(':', '-')}.{fmt}").write_bytes(get(url))
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    if len(sys.argv) > 1:
+        # single loose nodes that are not covered by the tree walk, e.g. `21:29952`
+        export({nid: "extra" for nid in sys.argv[1:]}, formats=("svg",))
+        print("done", OUT)
+        return
     doc = json.loads(get(f"https://api.figma.com/v1/files/{FILE_KEY}?geometry=paths"))
     (OUT / "file.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1))
 
@@ -36,19 +57,7 @@ def main():
                     nodes[child["id"]] = f"{page['name']}/{top['name']}/{child['name']}"
     print("nodes", len(nodes))
 
-    ids = list(nodes)
-    for fmt in ("svg", "png"):
-        for i in range(0, len(ids), 50):
-            chunk = ids[i:i + 50]
-            q = urllib.parse.urlencode({"ids": ",".join(chunk), "format": fmt,
-                                        "svg_include_id": "true", "scale": 1})
-            urls = json.loads(get(f"https://api.figma.com/v1/images/{FILE_KEY}?{q}"))["images"]
-            for nid, url in urls.items():
-                if not url:
-                    continue
-                name = nodes[nid].replace("/", "__").replace(" ", "_")[:150]
-                (OUT / fmt).mkdir(exist_ok=True)
-                (OUT / fmt / f"{name}__{nid.replace(':', '-')}.{fmt}").write_bytes(get(url))
+    export(nodes)
     print("done", OUT)
 
 

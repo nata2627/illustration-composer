@@ -1,0 +1,32 @@
+{
+  "roles": {
+    "bg1": "фон, светлый",
+    "bg2": "фон, средний",
+    "bg3": "фон, темный",
+    "ink": "контур и тень",
+    "obj1": "объект, первый акцент",
+    "obj2": "объект, второй акцент",
+    "obj3": "объект, третий акцент",
+    "paper": "белый"
+  },
+  "palettes": [
+    {
+      "id": "lilac",
+      "name": "Сиреневая",
+      "background": { "bg1": "#D7CDF5", "bg2": "#AA9BF0", "bg3": "#7864D7", "ink": "#181817" },
+      "objects": { "obj1": "#F9ECB0", "obj2": "#F9A3AA", "obj3": "#FFE3E1", "paper": "#FFFFFF" }
+    },
+    {
+      "id": "peach",
+      "name": "Персиковая",
+      "background": { "bg1": "#FDD7B9", "bg2": "#FAC896", "bg3": "#D27532", "ink": "#181817" },
+      "objects": { "obj1": "#F9ECB0", "obj2": "#80DADA", "obj3": "#BEEBEB", "paper": "#FFFFFF" }
+    },
+    {
+      "id": "teal",
+      "name": "Бирюзовая",
+      "background": { "bg1": "#BEEBEB", "bg2": "#80DADA", "bg3": "#5ABEBE", "ink": "#181817" },
+      "objects": { "obj1": "#FFD4F2", "obj2": "#6D7BFC", "obj3": "#B6C6FE", "paper": "#FFFFFF" }
+    }
+  ]
+}
