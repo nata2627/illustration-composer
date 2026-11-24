@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Конструктор композиций</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <header>
+      <h1>Конструктор композиций</h1>
+      <p>Сборка иллюстрации 1200 × 630 из 20 векторных объектов библиотеки</p>
+    </header>
+    <main>
+      <aside class="panel">
+        <section>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="metaphor">По заголовку</button>
+            <button class="tab" data-tab="names">По названиям</button>
+          </div>
+          <form id="metaphor-form" class="tab-body" data-tab="metaphor">
+            <label for="metaphor">Метафора или заголовок</label>
+            <textarea id="metaphor" rows="2">Идеи для подкаста о личных финансах</textarea>
+            <button type="submit" class="primary">Собрать</button>
+          </form>
+          <form id="names-form" class="tab-body" data-tab="names" hidden>
+            <label for="names">Названия объектов</label>
+            <input id="names" value="наушники, лампа и фоновая книга" />
+            <div id="name-chips" class="chips"></div>
+            <button type="submit" class="primary">Собрать</button>
+          </form>
+          <div id="explain" class="explain"></div>
+        </section>
+        <section class="grid2">
+          <label>Шаблон <select id="template"></select></label>
+          <label>Размер
+            <select id="size">
+              <option value="L">L, детальный</option>
+              <option value="S">S, упрощенный</option>
+            </select>
+          </label>
+          <label>Цветовая схема <select id="palette"></select></label>
+          <label class="file">Своя палитра JSON <input id="palette-file" type="file" accept=".json,application/json" /></label>
+        </section>
+        <section class="row">
+          <button id="variant">Другой вариант</button>
+          <button id="clear">Очистить</button>
+          <button id="download" class="primary">Скачать SVG</button>
+        </section>
+        <p id="status" class="status"></p>
+      </aside>
+      <div class="stage">
+        <div id="canvas" class="canvas"></div>
+        <div class="toolbar" id="toolbar">
+          <span id="selected-name">Объект не выбран</span>
+          <button data-act="up" title="Слой выше">Выше</button>
+          <button data-act="down" title="Слой ниже">Ниже</button>
+          <button data-act="rotl" title="Повернуть на -15°">⟲ 15°</button>
+          <button data-act="rotr" title="Повернуть на 15°">⟳ 15°</button>
+          <button data-act="smaller" title="Меньше">−</button>
+          <button data-act="bigger" title="Больше">+</button>
+          <button data-act="dup">Дублировать</button>
+          <button data-act="del">Удалить</button>
+        </div>
+        <div class="bottom">
+          <section>
+            <h2>Библиотека</h2>
+            <p class="hint">Клик добавляет объект на холст. Верхний ряд главные, нижний фоновые.</p>
+            <div id="library" class="library"></div>
+          </section>
+          <section>
+            <h2>Слои</h2>
+            <ol id="layers" class="layers" reversed></ol>
+          </section>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
