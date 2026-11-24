@@ -1,6 +1,6 @@
-"""Выгрузка материалов тестового из Figma через REST API.
+"""Export the Figma file and its nodes as SVG and PNG through the Figma REST API.
 
-Токен берется из ~/.figma_token, ключ файла из FIGMA_FILE_KEY. Результат в assets/figma.
+The token is read from ~/.figma_token, the file key from FIGMA_FILE_KEY. Output goes to assets/figma.
 """
 import json
 import os
@@ -46,7 +46,7 @@ def main():
     doc = json.loads(get(f"https://api.figma.com/v1/files/{FILE_KEY}?geometry=paths"))
     (OUT / "file.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1))
 
-    # все узлы второго и третьего уровня на каждой странице, кроме обложки
+    # every top-level node of each page and its frame/group children
     nodes = {}
     for page in doc["document"]["children"]:
         print("page", page["name"])
