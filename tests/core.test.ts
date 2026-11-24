@@ -5,7 +5,7 @@ import { META, OBJECT_IDS } from "../src/library";
 import { builtinPalette, colorMap, colorsIn, normalizeColor, parsePaletteFile, PALETTES, recolor } from "../src/palette";
 import { sceneToSvg } from "../src/render";
 import { addLayer, duplicateLayer, moveLayer, removeLayer, type Scene } from "../src/scene";
-import { canvasBox, compose, insideCanvas, TEMPLATES, type TemplateId } from "../src/layout";
+import { canvasBox, compose, insideCanvas, rng, TEMPLATES, type TemplateId } from "../src/layout";
 import { parseNames, pickForMetaphor } from "../src/match";
 
 const load = (size: Size): Library => JSON.parse(readFileSync(`public/library/${size}.json`, "utf8"));
@@ -136,6 +136,82 @@ describe("layout", () => {
     const picks = ["book", "lamp", "pen"].map((objectId) => ({ objectId, variant: "main" as const }));
     const strip = (ls: ReturnType<typeof compose>) => ls.map(({ uid: _uid, ...rest }) => rest);
     expect(strip(compose(picks, "offset", s, libs.L, 3))).toEqual(strip(compose(picks, "offset", s, libs.L, 3)));
+  });
+
+  const sceneOf = (size: Size): Scene => ({ size, paletteId: "lilac", layers: [] });
+  const mains = (...ids: string[]) => ids.map((objectId) => ({ objectId, variant: "main" as const }));
+  const box = (layers: ReturnType<typeof compose>, id: string, size: Size = "L") =>
+    canvasBox(layers.find((l) => l.objectId === id)!, libs[size], size);
+  const index = (layers: ReturnType<typeof compose>, id: string) => layers.findIndex((l) => l.objectId === id);
+  const cx = (b: { x: number; w: number }) => b.x + b.w / 2;
+  const cy = (b: { y: number; h: number }) => b.y + b.h / 2;
+
+  it.each([1, 2, 3, 4, 5])("puts the phone on the book and the puzzle on the phone (seed %i)", (seed) => {
+    const layers = compose(mains("puzzle", "book", "headphones", "phone"), "assembled", sceneOf("L"), libs.L, seed);
+    const book = box(layers, "book");
+    const phone = box(layers, "phone");
+    const puzzle = box(layers, "puzzle");
+    expect(cx(phone)).toBeGreaterThan(book.x);
+    expect(cx(phone)).toBeLessThan(book.x + book.w);
+    expect(cy(phone)).toBeGreaterThan(book.y);
+    expect(cy(phone)).toBeLessThan(book.y + book.h / 2);
+    expect(cx(puzzle)).toBeGreaterThan(phone.x);
+    expect(cx(puzzle)).toBeLessThan(phone.x + phone.w);
+    expect(index(layers, "book")).toBeLessThan(index(layers, "phone"));
+    expect(index(layers, "phone")).toBeLessThan(index(layers, "puzzle"));
+  });
+
+  it("stands a flat phone right behind the headphones, as in the S frames", () => {
+    const layers = compose(mains("lamp", "headphones", "phone"), "assembled", sceneOf("S"), libs.S, 1);
+    const hp = box(layers, "headphones", "S");
+    const phone = box(layers, "phone", "S");
+    expect(Math.abs(cx(phone) - cx(hp))).toBeLessThan(1);
+    expect(phone.y + phone.h).toBeLessThanOrEqual(hp.y + 0.05 * phone.h);
+    expect(index(layers, "phone")).toBeLessThan(index(layers, "headphones"));
+  });
+
+  it.each([1, 2, 3])("keeps the lamp at the back end and the pen in front (seed %i)", (seed) => {
+    const picks = mains("book", "headphones", "lamp", "pen");
+    const right = compose(picks, "assembled", sceneOf("L"), libs.L, seed);
+    const left = compose(picks, "offset", sceneOf("L"), libs.L, seed);
+    for (const [layers, lampRight] of [[right, true], [left, false]] as const) {
+      const lamp = box(layers, "lamp");
+      const others = ["book", "headphones"].map((id) => box(layers, id));
+      for (const o of others) {
+        expect(cx(lamp) > cx(o)).toBe(lampRight);
+        expect(cy(lamp)).toBeLessThan(cy(o)); // further back
+        expect(cy(box(layers, "pen"))).toBeGreaterThan(cy(o)); // in front
+      }
+      expect(layers.at(-1)!.objectId).toBe("pen");
+    }
+  });
+
+  it("matches the sizes of the reference frame without extra scaling", () => {
+    // "Собранно L": book 529 px wide, headphones 365, lamp 243 (Figma frame 275:635)
+    const layers = compose(mains("book", "phone", "puzzle", "headphones", "lamp", "pen"), "assembled", sceneOf("L"), libs.L, 1);
+    expect(box(layers, "book").w).toBeGreaterThan(529 * 0.9);
+    expect(box(layers, "book").w).toBeLessThan(529 * 1.1);
+    expect(box(layers, "headphones").w / box(layers, "book").w).toBeCloseTo(365 / 529, 1);
+    expect(box(layers, "lamp").w / box(layers, "book").w).toBeCloseTo(243 / 529, 1);
+  });
+
+  it("keeps every random scene inside the canvas", () => {
+    const rand = rng(42);
+    for (let n = 0; n < 600; n++) {
+      const size: Size = rand() < 0.5 ? "L" : "S";
+      const count = 1 + Math.floor(rand() * 8);
+      const picks = Array.from({ length: count }, () => ({
+        objectId: OBJECT_IDS[Math.floor(rand() * OBJECT_IDS.length)],
+        variant: rand() < 0.3 ? ("bg" as const) : ("main" as const),
+      }));
+      const template = (Object.keys(TEMPLATES) as TemplateId[])[n % 3];
+      const layers = compose(picks, template, sceneOf(size), libs[size], n);
+      expect(layers).toHaveLength(count);
+      for (const l of layers) {
+        expect(Number.isFinite(l.x) && Number.isFinite(l.y) && l.scale > 0).toBe(true);
+        expect(insideCanvas(canvasBox(l, libs[size], size)), JSON.stringify({ n, template, picks })).toBe(true);
+      }
+    }
   });
 
   it("headline template leaves the left half free", () => {
