@@ -1,0 +1,17 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.session
+*.pem
+
+# local tooling
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+logs/
+.vscode/
+.DS_Store
+
+assets/figma/file.json
